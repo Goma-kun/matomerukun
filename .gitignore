@@ -1,0 +1,9 @@
+.DS_Store
+__MACOSX
+# 固定ID用の秘密鍵など。公開リポジトリに絶対に入れない
+dev/
+dist/
+*.zip
+# 申請用の内部メモ（過去に公開事故があった型）
+STORE_LISTING.md
+.claude/

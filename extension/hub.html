@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>まとめるくん</title>
+  <link rel="stylesheet" href="hub.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-title">
+      <h1>まとめるくん</h1>
+      <span class="version-badge" id="versionBadge">v0.1.0</span>
+    </div>
+    <div class="header-buttons">
+      <button id="btnPopout" class="btn-ghost" title="別ウィンドウで開く" hidden>⧉</button>
+      <button id="btnDock" class="btn-ghost" title="サイドパネルに戻す" hidden>⇥</button>
+      <button id="btnSettings" class="btn-ghost" title="設定">⚙</button>
+    </div>
+  </header>
+
+  <nav class="tab-bar" id="tabBar" aria-label="拡張機能の切り替え"></nav>
+
+  <!-- 設定（通常は閉じている） -->
+  <section id="settingsView" class="settings" hidden>
+    <h2 class="settings-heading">設定</h2>
+    <p class="settings-note">
+      通常は変更不要です。開発版など、ストア版と違うIDの拡張機能を
+      埋め込みたいときだけ、そのIDを入れてください（chrome://extensions で確認できます）。
+      空欄に戻すとストア版のIDを使います。
+    </p>
+    <div id="settingsFields"></div>
+    <div class="settings-buttons">
+      <button id="btnSettingsSave" class="btn-primary">保存</button>
+      <button id="btnSettingsClose" class="btn-secondary">閉じる</button>
+    </div>
+  </section>
+
+  <!-- 各拡張の表示エリア（iframeはJSが差し込む） -->
+  <main id="frames" class="frames"></main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="hub.js"></script>
+</body>
+</html>

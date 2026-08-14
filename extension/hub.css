@@ -1,0 +1,126 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+/* hidden属性はauthor CSSのdisplay指定に負けるので必ず入れる（開発チェックManual） */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size: 14px;
+  background: #f4f6fa;
+  color: #1b2a4a;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── ヘッダー ── */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: #1b2a4a;
+  color: #fff;
+  flex-shrink: 0;
+}
+.app-title { display: flex; align-items: center; gap: 8px; }
+.app-title h1 { margin: 0; font-size: 15px; font-weight: 700; }
+.version-badge {
+  font-size: 11px; font-weight: 600;
+  background: #e8a13a; color: #1b2a4a;
+  border-radius: 8px; padding: 1px 7px;
+}
+.header-buttons { display: flex; gap: 4px; }
+.btn-ghost {
+  border: none; background: transparent; color: #cdd7ea;
+  font-size: 15px; padding: 3px 7px; border-radius: 6px; cursor: pointer;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* ── タブバー ── */
+.tab-bar {
+  display: flex;
+  background: #27395f;
+  flex-shrink: 0;
+}
+.tab {
+  flex: 1;
+  border: none; cursor: pointer;
+  padding: 9px 4px;
+  font-size: 13px; font-weight: 600;
+  background: transparent; color: #b9c5dc;
+  border-bottom: 3px solid transparent;
+}
+.tab:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.tab.active {
+  color: #fff;
+  border-bottom-color: #e8a13a;
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── 表示エリア ── */
+.frames {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+.frames iframe {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+
+/* 読み込めなかったときの案内 */
+.frame-notice {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; padding: 24px; text-align: center;
+  background: #f4f6fa;
+}
+.frame-notice .notice-main { font-weight: 700; }
+.frame-notice .notice-sub { color: #5a6b8c; font-size: 13px; line-height: 1.7; }
+
+/* ── 設定 ── */
+.settings {
+  padding: 12px;
+  background: #fff;
+  border-bottom: 1px solid #dbe2ef;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.settings-heading { margin: 0 0 6px; font-size: 14px; }
+.settings-note { margin: 0 0 10px; font-size: 12px; color: #5a6b8c; line-height: 1.7; }
+.settings .field { margin-bottom: 8px; }
+.settings .field label {
+  display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px;
+}
+.settings .field input {
+  width: 100%; padding: 6px 8px;
+  border: 1px solid #c4cede; border-radius: 6px;
+  font-size: 12px; font-family: ui-monospace, monospace;
+}
+.settings-buttons { display: flex; gap: 8px; margin-top: 10px; }
+.btn-primary {
+  border: none; cursor: pointer;
+  background: #1b2a4a; color: #fff;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
+}
+.btn-primary:hover { background: #27395f; }
+.btn-secondary {
+  border: 1px solid #c4cede; cursor: pointer;
+  background: #fff; color: #1b2a4a;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px;
+}
+.btn-secondary:hover { background: #eef1f7; }
+
+/* ── トースト ── */
+.toast {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+  background: #1b2a4a; color: #fff;
+  padding: 8px 14px; border-radius: 8px; font-size: 13px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  z-index: 10;
+}
+.toast.error { background: #a33d3d; }
