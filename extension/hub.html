@@ -7,26 +7,25 @@
   <link rel="stylesheet" href="hub.css">
 </head>
 <body>
-  <header class="app-header">
-    <div class="app-title">
-      <h1>まとめるくん</h1>
-      <span class="version-badge" id="versionBadge">v0.1.0</span>
-    </div>
-    <div class="header-buttons">
+  <!-- サイドパネルやウィンドウの枠に「まとめるくん」の名前は出るので、
+       こちらはタブと操作ボタンの1段だけにする（名前の二重表示を避ける） -->
+  <header class="top-bar">
+    <nav class="tab-bar" id="tabBar" aria-label="拡張機能の切り替え"></nav>
+    <div class="top-actions">
+      <span class="version-badge" id="versionBadge">v0.2.0</span>
       <button id="btnPopout" class="btn-ghost" title="別ウィンドウで開く" hidden>⧉</button>
       <button id="btnDock" class="btn-ghost" title="サイドパネルに戻す" hidden>⇥</button>
       <button id="btnSettings" class="btn-ghost" title="設定">⚙</button>
     </div>
   </header>
 
-  <nav class="tab-bar" id="tabBar" aria-label="拡張機能の切り替え"></nav>
-
   <!-- 設定（通常は閉じている） -->
   <section id="settingsView" class="settings" hidden>
     <h2 class="settings-heading">設定</h2>
     <p class="settings-note">
-      通常は変更不要です。開発版など、ストア版と違うIDの拡張機能を
-      埋め込みたいときだけ、そのIDを入れてください（chrome://extensions で確認できます）。
+      タブに表示する拡張機能をチェックで選べます。
+      IDは通常は変更不要です。開発版など、ストア版と違うIDの拡張機能を
+      埋め込みたいときだけ入れてください（chrome://extensions で確認できます）。
       空欄に戻すとストア版のIDを使います。
     </p>
     <div id="settingsFields"></div>

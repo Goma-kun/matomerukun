@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "まとめるくん",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "自作のChrome拡張をひとつの窓で切り替えて使うハブ",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuvloh+UM1oUNeuVCwLdblp8PXG1Fnz2dajFxicpWBdlhuxdESTUFSoa0imxHZn3bdZPSMEfxE2ZJmgJczO0HfNf/CymIm//lA+7swBgpYbtcmjg4cbQcAgG0jv/sPLdQXGUrHtWF0LswP8bsNWmHsz8yCiZPl0WoUSKhWdfIHM4+XoJWj0mn5t7xvvWO3/rZ8P8KZmvNaxJQbySYukuYxavChA7MujIDEuHjEUXXVJOnBlEayOSn1Nc9A8+hGZi9OZXANyAX02+O2PKRPgM1T/JU6A6EVDb/Hk3ffIBAYplt6ARkJXOJQeJqxoe+c9eDi8Fd2nPfwRcL1U3De5drlwIDAQAB",
   "minimum_chrome_version": "114",

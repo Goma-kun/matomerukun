@@ -187,6 +187,20 @@ if (popup) {
 const oldTab = (await allTargets()).find((t) => t.targetId === hubTab);
 check('切り離し後、元のパネル側は閉じる', !oldTab || oldTab.url === '');
 
+// ---- 7. タブの表示選択（enabledApps）----
+if (popup) {
+  const pop2 = await attach(popup.targetId);
+  await evalIn(hubSwSid, `chrome.storage.local.set({ enabledApps: ['mamorukun', 'unagasukun'] })`);
+  await evalIn(pop2, `location.reload()`).catch(() => {});
+  await sleep(1500);
+  const pop3 = await attach(popup.targetId);
+  const tabs2 = await evalIn(pop3, `[...document.querySelectorAll('.tab')].map(b => b.dataset.key)`);
+  check('表示選択がタブに反映される（おさむくんを外すと2つ）',
+    JSON.stringify(tabs2) === JSON.stringify(['mamorukun', 'unagasukun']), JSON.stringify(tabs2));
+  const active2 = await evalIn(pop3, `document.querySelector('.tab.active')?.dataset.key`);
+  check('外した拡張が選択中でも、残りのタブに切り替わる', active2 === 'mamorukun' || active2 === 'unagasukun', active2);
+}
+
 console.log(`\n結果: ${pass} 件成功 / ${fail} 件失敗`);
 chrome.kill();
 process.exit(fail ? 1 : 0);

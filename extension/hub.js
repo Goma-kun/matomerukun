@@ -52,9 +52,12 @@ const store = {
 };
 
 const OVERRIDES_KEY = 'idOverrides';
+const ENABLED_KEY = 'enabledApps';
 const LAST_APP_KEY = 'lastAppKey';
 
 let idOverrides = {};
+// タブに表示する拡張のキー一覧。未設定なら全部表示する
+let enabledApps = APPS.map((a) => a.key);
 const frames = new Map(); // key -> iframe（一度作ったら切替では消さない。録音などを止めないため）
 let activeKey = null;
 
@@ -109,7 +112,7 @@ function showNotice(app) {
 
 async function activate(key) {
   const app = APPS.find((a) => a.key === key);
-  if (!app) return;
+  if (!app || !enabledApps.includes(key)) return;
   activeKey = key;
 
   for (const btn of tabBar.querySelectorAll('.tab')) {
@@ -161,7 +164,7 @@ async function retryIfNotice(key) {
 
 function renderTabs() {
   tabBar.textContent = '';
-  for (const app of APPS) {
+  for (const app of APPS.filter((a) => enabledApps.includes(a.key))) {
     const btn = document.createElement('button');
     btn.className = 'tab';
     btn.dataset.key = app.key;
@@ -184,9 +187,21 @@ function renderSettings() {
   for (const app of APPS) {
     const field = document.createElement('div');
     field.className = 'field';
-    const label = document.createElement('label');
-    label.textContent = `${app.label} のID`;
-    label.setAttribute('for', `id-${app.key}`);
+
+    const row = document.createElement('label');
+    row.className = 'app-row';
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.id = `en-${app.key}`;
+    check.checked = enabledApps.includes(app.key);
+    const rowText = document.createElement('span');
+    rowText.textContent = `${app.label} をタブに表示`;
+    row.append(check, rowText);
+
+    const idLabel = document.createElement('label');
+    idLabel.className = 'id-label';
+    idLabel.textContent = 'ID';
+    idLabel.setAttribute('for', `id-${app.key}`);
     const input = document.createElement('input');
     input.type = 'text';
     input.id = `id-${app.key}`;
@@ -194,28 +209,38 @@ function renderSettings() {
     input.value = idOverrides[app.key] || '';
     input.autocomplete = 'off';
     input.spellcheck = false;
-    field.append(label, input);
+
+    field.append(row, idLabel, input);
     settingsFields.appendChild(field);
   }
 }
 
 async function saveSettings() {
+  const nextEnabled = APPS.filter((app) => document.getElementById(`en-${app.key}`).checked)
+    .map((app) => app.key);
+  if (nextEnabled.length === 0) {
+    showToast('表示する拡張機能を1つ以上選んでください', true);
+    return;
+  }
   const next = {};
   for (const app of APPS) {
     const v = document.getElementById(`id-${app.key}`).value.trim();
     if (v && v !== app.id) next[app.key] = v;
   }
   idOverrides = next;
-  await store.set({ [OVERRIDES_KEY]: next });
-  // IDが変わったら作り直す（次にタブを開いたときに新しいIDで読み込む）
+  enabledApps = nextEnabled;
+  await store.set({ [OVERRIDES_KEY]: next, [ENABLED_KEY]: nextEnabled });
+  // 表示対象やIDが変わったら作り直す（次にタブを開いたときに新しい構成で読み込む）
   for (const [key, iframe] of frames) {
     iframe.remove();
     frames.delete(key);
   }
   for (const el of [...framesEl.children]) el.remove();
+  renderTabs();
   settingsView.hidden = true;
   showToast('保存しました');
-  if (activeKey) activate(activeKey);
+  const target = enabledApps.includes(activeKey) ? activeKey : enabledApps[0];
+  activate(target);
 }
 
 // ===== 別ウィンドウ表示（おさむくん v1.2〜1.3 の実装を移植） =====
@@ -363,8 +388,12 @@ async function handOverToExistingWindow() {
 // ===== 初期化 =====
 
 async function init() {
-  const saved = await store.get([OVERRIDES_KEY, LAST_APP_KEY]);
+  const saved = await store.get([OVERRIDES_KEY, ENABLED_KEY, LAST_APP_KEY]);
   idOverrides = saved[OVERRIDES_KEY] || {};
+  const savedEnabled = Array.isArray(saved[ENABLED_KEY])
+    ? saved[ENABLED_KEY].filter((k) => APPS.some((a) => a.key === k))
+    : null;
+  if (savedEnabled && savedEnabled.length > 0) enabledApps = savedEnabled;
 
   renderTabs();
   renderSettings();
@@ -392,7 +421,7 @@ async function init() {
   if (canOpenWindow && await handOverToExistingWindow()) return;
 
   const last = saved[LAST_APP_KEY];
-  const first = APPS.some((a) => a.key === last) ? last : APPS[0].key;
+  const first = enabledApps.includes(last) ? last : enabledApps[0];
   await activate(first);
 }
 

@@ -16,38 +16,38 @@ body {
   flex-direction: column;
 }
 
-/* ── ヘッダー ── */
-.app-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px;
+/* ── 上段バー（タブ＋操作ボタンの1段だけ） ── */
+.top-bar {
+  display: flex; align-items: stretch;
   background: #1b2a4a;
   color: #fff;
   flex-shrink: 0;
 }
-.app-title { display: flex; align-items: center; gap: 8px; }
-.app-title h1 { margin: 0; font-size: 15px; font-weight: 700; }
 .version-badge {
-  font-size: 11px; font-weight: 600;
+  font-size: 10px; font-weight: 600;
   background: #e8a13a; color: #1b2a4a;
-  border-radius: 8px; padding: 1px 7px;
+  border-radius: 8px; padding: 1px 6px;
+  align-self: center;
 }
-.header-buttons { display: flex; gap: 4px; }
+.top-actions { display: flex; align-items: center; gap: 2px; padding: 0 6px; }
 .btn-ghost {
   border: none; background: transparent; color: #cdd7ea;
-  font-size: 15px; padding: 3px 7px; border-radius: 6px; cursor: pointer;
+  font-size: 15px; padding: 3px 6px; border-radius: 6px; cursor: pointer;
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
-/* ── タブバー ── */
+/* ── タブ ── */
 .tab-bar {
   display: flex;
-  background: #27395f;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 .tab {
   flex: 1;
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   border: none; cursor: pointer;
-  padding: 9px 4px;
+  padding: 11px 4px;
   font-size: 13px; font-weight: 600;
   background: transparent; color: #b9c5dc;
   border-bottom: 3px solid transparent;
@@ -92,9 +92,17 @@ body {
 }
 .settings-heading { margin: 0 0 6px; font-size: 14px; }
 .settings-note { margin: 0 0 10px; font-size: 12px; color: #5a6b8c; line-height: 1.7; }
-.settings .field { margin-bottom: 8px; }
-.settings .field label {
-  display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px;
+.settings .field { margin-bottom: 12px; }
+.settings .field .app-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; margin-bottom: 4px;
+  cursor: pointer;
+}
+.settings .field .app-row input[type="checkbox"] {
+  width: 15px; height: 15px; accent-color: #1b2a4a;
+}
+.settings .field .id-label {
+  display: block; font-size: 11px; color: #5a6b8c; margin-bottom: 3px;
 }
 .settings .field input {
   width: 100%; padding: 6px 8px;
