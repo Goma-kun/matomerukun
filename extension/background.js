@@ -1,5 +1,7 @@
 // まとめるくん service worker
-// ツールバーアイコンのクリックでサイドパネルを開く（おさむくん方式）
+// ツールバーアイコンのクリックでサイドパネルを開く（おさむくん方式）。
+// 「すでに別の場所で開いている場合はそちらへ寄せる」判定は hub.js 側で行う
+// （sidePanel.open() は本物のユーザージェスチャーでしか呼べず、SWでの事前チェックと両立しないため）
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((e) => console.error(e));

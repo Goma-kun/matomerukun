@@ -395,6 +395,27 @@ async function handOverToExistingWindow() {
   }
 }
 
+// サイドパネルとして開かれたとき、別のウィンドウで既にサイドパネルが開いていればそちらへ寄せる。
+// アイコンをクリックするたびにウィンドウごとへ増えていくのを防ぐ（まもるくんと同じ「既存を前面に」の挙動）。
+// 同じウィンドウで開き直したときは寄せない（それは普通の開閉なので）
+async function handOverToExistingSidePanel() {
+  if (isPopupWindow || !canOpenWindow) return false;
+  if (typeof chrome.runtime.getContexts !== 'function') return false; // Chrome 116未満
+  try {
+    const self = await getOwnWindow();
+    if (!self) return false;
+    const contexts = await chrome.runtime.getContexts({ contextTypes: ['SIDE_PANEL'] });
+    const other = contexts.find((c) => c.windowId != null && c.windowId !== self.id);
+    if (!other) return false;
+    await chrome.windows.update(other.windowId, { focused: true, drawAttention: true });
+    window.close();
+    return true;
+  } catch {
+    // 判定に失敗したら普通に表示する（二重表示になっても実害は表示だけ）
+    return false;
+  }
+}
+
 // ===== 初期化 =====
 
 async function init() {
@@ -429,6 +450,7 @@ async function init() {
   }
 
   if (canOpenWindow && await handOverToExistingWindow()) return;
+  if (await handOverToExistingSidePanel()) return;
 
   const last = saved[LAST_APP_KEY];
   const first = enabledApps.includes(last) ? last : enabledApps[0];
