@@ -5,6 +5,11 @@
 
 // 埋め込む拡張の一覧。id はChromeウェブストア版のID。
 // 開発版などIDが違うものを使うときは設定（⚙）で上書きできる。
+// クリップボードへの書き込みは Permissions Policy の既定が self のため、
+// 別オリジン（＝別拡張）の iframe には allow で委譲しないと
+// navigator.clipboard.writeText がすべて拒否される。3拡張ともコピー機能を持つので共通で付ける。
+const BASE_ALLOW = 'clipboard-write';
+
 const APPS = [
   {
     key: 'mamorukun',
@@ -85,6 +90,11 @@ function appUrl(app) {
   return `chrome-extension://${resolveId(app)}/${app.page}`;
 }
 
+// iframe に委譲する権限。app.allow（マイクなど個別のもの）に共通分を足す
+function frameAllow(app) {
+  return [app.allow, BASE_ALLOW].filter(Boolean).join('; ');
+}
+
 // 相手の拡張が入っていて、こちらへの埋め込みを許可しているかを確かめる。
 // 許可が無い・未インストールだと fetch 自体が失敗する
 async function isAvailable(app) {
@@ -129,7 +139,7 @@ async function activate(key) {
     if (await isAvailable(app)) {
       const iframe = document.createElement('iframe');
       iframe.dataset.key = key;
-      if (app.allow) iframe.allow = app.allow;
+      iframe.allow = frameAllow(app);
       iframe.src = appUrl(app);
       framesEl.appendChild(iframe);
       frames.set(key, iframe);
@@ -154,7 +164,7 @@ async function retryIfNotice(key) {
     notice.remove();
     const iframe = document.createElement('iframe');
     iframe.dataset.key = key;
-    if (app.allow) iframe.allow = app.allow;
+    iframe.allow = frameAllow(app);
     iframe.src = appUrl(app);
     iframe.hidden = key !== activeKey;
     framesEl.appendChild(iframe);

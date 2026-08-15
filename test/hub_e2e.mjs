@@ -161,6 +161,24 @@ if (mamo) {
   check('まもるくん: マイク権限がpromptかgranted', await evalIn(mamo, `navigator.permissions.query({name:'microphone'}).then(p => p.state !== 'denied')`));
 }
 
+// ---- 4.5 コピー機能（clipboard-write の委譲）----
+// Permissions Policy の既定は self。allow で委譲しないと、埋め込まれた側の
+// navigator.clipboard.writeText がすべて NotAllowedError になる（v0.2.1で修正）
+// writeText はフォーカスされた文書からしか呼べないため、ハブの窓を前面に出し、
+// 対象のタブを表示にしてから試す（そうしないと環境の都合で "Document is not focused" になる）
+await send('Target.activateTarget', { targetId: hubTab });
+await send('Page.bringToFront', {}, hub).catch(() => {});
+for (const [name, key, sid] of [['まもるくん', 'mamorukun', mamo], ['おさむくん', 'osamukun', osa], ['うながすくん', 'unagasukun', una]]) {
+  if (!sid) continue;
+  check(`${name}: iframeにclipboard-writeが委譲されている`,
+    await evalIn(sid, `document.featurePolicy.allowsFeature('clipboard-write')`));
+  await evalIn(hub, `document.querySelector('.tab[data-key="${key}"]').click()`);
+  await sleep(400);
+  await evalIn(sid, `window.focus()`).catch(() => {});
+  const w = await evalIn(sid, `navigator.clipboard.writeText('hub-copy-probe').then(() => 'ok').catch(e => e.name + ': ' + e.message)`);
+  check(`${name}: iframe内でwriteTextが通る`, w === 'ok', w);
+}
+
 // ---- 5. タブを切り替えてもiframeが破棄されない（録音を止めないための要件）----
 await evalIn(hub, `document.querySelector('.tab[data-key="osamukun"]').click()`);
 await sleep(500);
