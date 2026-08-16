@@ -1,0 +1,30 @@
+{
+  "extName": { "message": "Matomerukun" },
+  "extDesc": { "message": "A hub for Mamorukun, Osamukun, and Unagasukun. Switch between the three extensions with tabs in one side panel." },
+  "appMamorukun": { "message": "Mamorukun" },
+  "appOsamukun": { "message": "Osamukun" },
+  "appUnagasukun": { "message": "Unagasukun" },
+  "tabAriaLabel": { "message": "Switch extensions" },
+  "btnPopoutTip": { "message": "Open in a separate window" },
+  "btnDockTip": { "message": "Return to the side panel" },
+  "btnSettingsTip": { "message": "Settings" },
+  "settingsHeading": { "message": "Settings" },
+  "settingsNote": { "message": "Choose which extensions appear as tabs. The ID fields normally stay empty: fill one in only when you want to embed a build with a different ID, such as a development version (you can find IDs at chrome://extensions). Clear the field to go back to the store version." },
+  "btnSave": { "message": "Save" },
+  "btnClose": { "message": "Close" },
+  "noticeMain": {
+    "message": "Cannot display $APP$",
+    "placeholders": { "app": { "content": "$1" } }
+  },
+  "noticeSub": { "message": "The extension is either not installed or not yet updated to a version that supports embedding in Matomerukun. Please make sure it is up to date." },
+  "showEnabledRow": {
+    "message": "Show $APP$ as a tab",
+    "placeholders": { "app": { "content": "$1" } }
+  },
+  "idLabel": { "message": "ID" },
+  "toastPickOne": { "message": "Select at least one extension to show" },
+  "toastSaved": { "message": "Saved" },
+  "toastWindowFailed": { "message": "Could not open the window" },
+  "toastNoBrowserWindow": { "message": "No browser window to return to" },
+  "toastSidePanelFailed": { "message": "Could not open the side panel" }
+}

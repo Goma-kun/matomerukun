@@ -13,7 +13,7 @@ const BASE_ALLOW = 'clipboard-write';
 const APPS = [
   {
     key: 'mamorukun',
-    label: 'まもるくん',
+    labelKey: 'appMamorukun',
     id: 'pnmjcgdobakecldppfhghdccblaoolla',
     page: 'sidepanel.html',
     // 音声書き起こしにマイクを使う。iframeには allow で明示的に委譲が要る
@@ -21,19 +21,67 @@ const APPS = [
   },
   {
     key: 'osamukun',
-    label: 'おさむくん',
+    labelKey: 'appOsamukun',
     id: 'hhbldkmlimbjbjficjbdpnohallkledi',
     page: 'sidepanel.html',
   },
   {
     key: 'unagasukun',
-    label: 'うながすくん',
+    labelKey: 'appUnagasukun',
     id: 'fenmdmkgdollhelglcbheknnheeclabe',
     page: 'sidepanel.html',
   },
 ];
 
 const hasChromeStorage = typeof chrome !== 'undefined' && !!chrome.storage;
+const hasChromeI18n = typeof chrome !== 'undefined' && !!chrome.i18n;
+
+// ---- i18n（うながすくん・おさむくんと同じ型）----
+
+let previewMessages = null; // プレビュー用（?lang=ja / ?lang=en で切替）
+
+function T(key, subs) {
+  const arr = subs == null ? [] : Array.isArray(subs) ? subs : [subs];
+  if (hasChromeI18n) {
+    return chrome.i18n.getMessage(key, arr.map(String)) || key;
+  }
+  const m = previewMessages && previewMessages[key];
+  if (!m) return key;
+  let out = m.message;
+  if (m.placeholders) {
+    for (const [name, def] of Object.entries(m.placeholders)) {
+      const idx = parseInt(String(def.content).replace('$', ''), 10) - 1;
+      out = out.replaceAll('$' + name.toUpperCase() + '$', String(arr[idx] ?? ''));
+    }
+  }
+  return out;
+}
+
+async function loadPreviewMessages() {
+  if (hasChromeI18n) return;
+  const lang = new URLSearchParams(location.search).get('lang') || 'ja';
+  try {
+    previewMessages = await (await fetch(`_locales/${lang}/messages.json`)).json();
+  } catch {
+    previewMessages = null;
+  }
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = T(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    el.title = T(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    el.setAttribute('aria-label', T(el.dataset.i18nAria));
+  });
+}
+
+function appLabel(app) {
+  return T(app.labelKey);
+}
 
 // ブラウザプレビュー（chrome.* が無い環境）でもUIを確認できるようにするフォールバック
 const store = {
@@ -112,10 +160,9 @@ function showNotice(app) {
   notice.dataset.key = app.key;
   notice.innerHTML = `
     <p class="notice-main"></p>
-    <p class="notice-sub">拡張機能がインストールされていないか、<br>
-    まとめるくんへの埋め込みに対応した版になっていません。<br>
-    最新版に更新されているか確認してください。</p>`;
-  notice.querySelector('.notice-main').textContent = `${app.label}を表示できません`;
+    <p class="notice-sub"></p>`;
+  notice.querySelector('.notice-main').textContent = T('noticeMain', appLabel(app));
+  notice.querySelector('.notice-sub').textContent = T('noticeSub');
   framesEl.appendChild(notice);
   return notice;
 }
@@ -178,7 +225,7 @@ function renderTabs() {
     const btn = document.createElement('button');
     btn.className = 'tab';
     btn.dataset.key = app.key;
-    btn.textContent = app.label;
+    btn.textContent = appLabel(app);
     btn.addEventListener('click', () => {
       if (app.key === activeKey) {
         retryIfNotice(app.key);
@@ -205,12 +252,12 @@ function renderSettings() {
     check.id = `en-${app.key}`;
     check.checked = enabledApps.includes(app.key);
     const rowText = document.createElement('span');
-    rowText.textContent = `${app.label} をタブに表示`;
+    rowText.textContent = T('showEnabledRow', appLabel(app));
     row.append(check, rowText);
 
     const idLabel = document.createElement('label');
     idLabel.className = 'id-label';
-    idLabel.textContent = 'ID';
+    idLabel.textContent = T('idLabel');
     idLabel.setAttribute('for', `id-${app.key}`);
     const input = document.createElement('input');
     input.type = 'text';
@@ -229,7 +276,7 @@ async function saveSettings() {
   const nextEnabled = APPS.filter((app) => document.getElementById(`en-${app.key}`).checked)
     .map((app) => app.key);
   if (nextEnabled.length === 0) {
-    showToast('表示する拡張機能を1つ以上選んでください', true);
+    showToast(T('toastPickOne'), true);
     return;
   }
   const next = {};
@@ -248,7 +295,7 @@ async function saveSettings() {
   for (const el of [...framesEl.children]) el.remove();
   renderTabs();
   settingsView.hidden = true;
-  showToast('保存しました');
+  showToast(T('toastSaved'));
   const target = enabledApps.includes(activeKey) ? activeKey : enabledApps[0];
   activate(target);
 }
@@ -307,7 +354,7 @@ async function ensureWindow() {
     await chrome.storage.local.set(toSave);
     return true;
   } catch {
-    showToast('ウィンドウを開けませんでした', true);
+    showToast(T('toastWindowFailed'), true);
     return false;
   }
 }
@@ -342,7 +389,7 @@ async function returnToSidePanel() {
   const target = await findSidePanelTarget();
   const self = await getOwnWindow();
   if (!target) {
-    showToast('戻り先のウィンドウが見つかりません', true);
+    showToast(T('toastNoBrowserWindow'), true);
     return;
   }
   try {
@@ -360,7 +407,7 @@ async function returnToSidePanel() {
         // 戻せない場合は二重表示になりうるが、実害は表示だけ
       }
     }
-    showToast('サイドパネルを開けませんでした', true);
+    showToast(T('toastSidePanelFailed'), true);
     return;
   }
   try {
@@ -419,6 +466,17 @@ async function handOverToExistingSidePanel() {
 // ===== 初期化 =====
 
 async function init() {
+  await loadPreviewMessages();
+  applyI18n();
+
+  // バージョンバッジはmanifestから入れる（手書きだと更新漏れでズレる）
+  try {
+    document.getElementById('versionBadge').textContent =
+      'v' + chrome.runtime.getManifest().version;
+  } catch {
+    // プレビュー（chrome.* なし）ではバッジを空のままにする
+  }
+
   const saved = await store.get([OVERRIDES_KEY, ENABLED_KEY, LAST_APP_KEY]);
   idOverrides = saved[OVERRIDES_KEY] || {};
   const savedEnabled = Array.isArray(saved[ENABLED_KEY])

@@ -10,28 +10,24 @@
   <!-- サイドパネルやウィンドウの枠に「まとめるくん」の名前は出るので、
        こちらはタブと操作ボタンの1段だけにする（名前の二重表示を避ける） -->
   <header class="top-bar">
-    <nav class="tab-bar" id="tabBar" aria-label="拡張機能の切り替え"></nav>
+    <nav class="tab-bar" id="tabBar" data-i18n-aria="tabAriaLabel"></nav>
     <div class="top-actions">
-      <span class="version-badge" id="versionBadge">v0.2.1</span>
-      <button id="btnPopout" class="btn-ghost" title="別ウィンドウで開く" hidden>⧉</button>
-      <button id="btnDock" class="btn-ghost" title="サイドパネルに戻す" hidden>⇥</button>
-      <button id="btnSettings" class="btn-ghost" title="設定">⚙</button>
+      <!-- バージョンはJSがmanifestから入れる（手書きだとズレる） -->
+      <span class="version-badge" id="versionBadge"></span>
+      <button id="btnPopout" class="btn-ghost" data-i18n-title="btnPopoutTip" hidden>⧉</button>
+      <button id="btnDock" class="btn-ghost" data-i18n-title="btnDockTip" hidden>⇥</button>
+      <button id="btnSettings" class="btn-ghost" data-i18n-title="btnSettingsTip">⚙</button>
     </div>
   </header>
 
   <!-- 設定（通常は閉じている） -->
   <section id="settingsView" class="settings" hidden>
-    <h2 class="settings-heading">設定</h2>
-    <p class="settings-note">
-      タブに表示する拡張機能をチェックで選べます。
-      IDは通常は変更不要です。開発版など、ストア版と違うIDの拡張機能を
-      埋め込みたいときだけ入れてください（chrome://extensions で確認できます）。
-      空欄に戻すとストア版のIDを使います。
-    </p>
+    <h2 class="settings-heading" data-i18n="settingsHeading"></h2>
+    <p class="settings-note" data-i18n="settingsNote"></p>
     <div id="settingsFields"></div>
     <div class="settings-buttons">
-      <button id="btnSettingsSave" class="btn-primary">保存</button>
-      <button id="btnSettingsClose" class="btn-secondary">閉じる</button>
+      <button id="btnSettingsSave" class="btn-primary" data-i18n="btnSave"></button>
+      <button id="btnSettingsClose" class="btn-secondary" data-i18n="btnClose"></button>
     </div>
   </section>
 

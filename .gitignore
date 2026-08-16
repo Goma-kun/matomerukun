@@ -7,3 +7,5 @@ dist/
 # 申請用の内部メモ（過去に公開事故があった型）
 STORE_LISTING.md
 .claude/
+# テスト用 Chrome for Testing（npx @puppeteer/browsers で入れる）
+chrome/
