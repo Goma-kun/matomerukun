@@ -248,16 +248,17 @@ if (popup) {
   check('保存した並び順がタブに反映される', JSON.stringify(tabs3) === JSON.stringify(['unagasukun', 'mamorukun']), JSON.stringify(tabs3));
   check('並び順を変えても起動時はまもるくん', await evalIn(pop5, `document.querySelector('.tab.active')?.dataset.key`) === 'mamorukun');
 
-  // 8b. ドラッグ相当のイベントで並べ替え → DOMと保存の両方が変わる
+  // 8b. ドラッグ相当のポインタイベントで並べ替え → DOMと保存の両方が変わる
   await evalIn(pop5, `(() => {
-    const bar = document.getElementById('tabBar');
     const drag = document.querySelector('.tab[data-key="unagasukun"]');
-    const dt = new DataTransfer();
-    drag.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
-    const other = document.querySelector('.tab[data-key="mamorukun"]');
-    const r = other.getBoundingClientRect();
-    bar.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.right + 1, dataTransfer: dt }));
-    drag.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+    const target = document.querySelector('.tab[data-key="mamorukun"]');
+    const r0 = drag.getBoundingClientRect();
+    const r1 = target.getBoundingClientRect();
+    const ev = (type, x) => new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: r0.top + 5 });
+    drag.dispatchEvent(ev('pointerdown', r0.left + r0.width / 2));
+    drag.dispatchEvent(ev('pointermove', r0.left + r0.width / 2 + 10));
+    drag.dispatchEvent(ev('pointermove', r1.right - 4));
+    drag.dispatchEvent(ev('pointerup', r1.right - 4));
     return true;
   })()`);
   await sleep(500);

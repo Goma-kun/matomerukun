@@ -61,7 +61,13 @@ body {
   border-bottom-color: #e8a13a;
   background: rgba(255,255,255,0.06);
 }
-.tab.dragging { opacity: 0.45; }
+/* ドラッグ中はタブ本体がバーの中を横に滑る（ゴーストは出さない） */
+.tab { touch-action: none; user-select: none; -webkit-user-select: none; }
+.tab.dragging {
+  position: relative; z-index: 2;
+  background: rgba(255,255,255,0.16); color: #fff;
+  cursor: grabbing;
+}
 
 /* ── 表示エリア ── */
 .frames {

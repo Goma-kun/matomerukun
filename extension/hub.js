@@ -251,42 +251,77 @@ function renderTabs() {
     btn.dataset.key = app.key;
     btn.textContent = appLabel(app);
     btn.addEventListener('click', () => {
+      if (suppressNextTabClick) {
+        suppressNextTabClick = false;
+        return;
+      }
       if (app.key === activeKey) {
         retryIfNotice(app.key);
         return;
       }
       activate(app.key);
     });
-    // ドラッグで並べ替えられるようにする。並べ替え中の見た目は .dragging
-    btn.draggable = true;
-    btn.addEventListener('dragstart', (e) => {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', app.key);
-      btn.classList.add('dragging');
+    // ドラッグで並べ替えられるようにする。
+    // HTML5のドラッグは半透明のゴーストが画面のどこへでも動いてしまうため使わず、
+    // ポインタ追従でタブ本体をバーの中だけで横にスライドさせる
+    btn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      tabDrag = { btn, startX: e.clientX, moved: false };
+      try { btn.setPointerCapture(e.pointerId); } catch { /* 合成イベントでは失敗してよい */ }
     });
-    btn.addEventListener('dragend', () => {
-      btn.classList.remove('dragging');
-      persistTabOrder();
-    });
+    btn.addEventListener('pointermove', onTabPointerMove);
+    btn.addEventListener('pointerup', onTabPointerUp);
+    btn.addEventListener('pointercancel', onTabPointerUp);
     tabBar.appendChild(btn);
   }
 }
 
-// ドラッグ中：ポインタの位置に合わせてタブをその場で入れ替える
-function onTabDragOver(e) {
-  const dragging = tabBar.querySelector('.tab.dragging');
-  if (!dragging) return;
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const rest = [...tabBar.querySelectorAll('.tab:not(.dragging)')];
-  const next = rest.find((t) => {
-    const r = t.getBoundingClientRect();
-    return e.clientX < r.left + r.width / 2;
-  });
-  if (next) {
-    if (next !== dragging.nextElementSibling) tabBar.insertBefore(dragging, next);
-  } else if (tabBar.lastElementChild !== dragging) {
-    tabBar.appendChild(dragging);
+// タブのドラッグ状態。ドラッグ直後の click を誤ってタブ切り替えにしないためのフラグも持つ
+let tabDrag = null;
+let suppressNextTabClick = false;
+
+function onTabPointerMove(e) {
+  const d = tabDrag;
+  if (!d || d.btn !== e.currentTarget) return;
+  if (!d.moved && Math.abs(e.clientX - d.startX) < 5) return;   // 5px未満はクリック扱い
+  d.moved = true;
+  d.btn.classList.add('dragging');
+
+  // 自分の中心が隣の中心を越えたら、DOMごと入れ替える。
+  // 入れ替えると offsetLeft が隣の幅ぶん変わるので、startX を同じだけ補正して続きを滑らかにする
+  let guard = 4;
+  while (guard--) {
+    const dx = e.clientX - d.startX;
+    const center = d.btn.offsetLeft + d.btn.offsetWidth / 2 + dx;
+    const prev = d.btn.previousElementSibling;
+    const next = d.btn.nextElementSibling;
+    if (next && center > next.offsetLeft + next.offsetWidth / 2) {
+      tabBar.insertBefore(next, d.btn);
+      d.startX += next.offsetWidth;
+    } else if (prev && center < prev.offsetLeft + prev.offsetWidth / 2) {
+      tabBar.insertBefore(d.btn, prev);
+      d.startX -= prev.offsetWidth;
+    } else {
+      break;
+    }
+  }
+
+  // バーの外へは出さない（横方向にだけ、端まででクランプ）
+  const minDx = -d.btn.offsetLeft;
+  const maxDx = tabBar.clientWidth - d.btn.offsetLeft - d.btn.offsetWidth;
+  const dx = Math.max(minDx, Math.min(maxDx, e.clientX - d.startX));
+  d.btn.style.transform = `translateX(${dx}px)`;
+}
+
+function onTabPointerUp(e) {
+  const d = tabDrag;
+  if (!d || d.btn !== e.currentTarget) return;
+  tabDrag = null;
+  d.btn.style.transform = '';
+  d.btn.classList.remove('dragging');
+  if (d.moved) {
+    suppressNextTabClick = true;   // このあと飛んでくる click はドラッグの締めなので無視する
+    persistTabOrder();
   }
 }
 
@@ -551,9 +586,6 @@ async function init() {
 
   renderTabs();
   renderSettings();
-
-  tabBar.addEventListener('dragover', onTabDragOver);
-  tabBar.addEventListener('drop', (e) => e.preventDefault());
 
   document.getElementById('btnSettings').addEventListener('click', () => {
     settingsView.hidden = !settingsView.hidden;
