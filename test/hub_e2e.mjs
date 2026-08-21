@@ -236,6 +236,38 @@ if (popup) {
   check('外した拡張が選択中でも、残りのタブに切り替わる', active2 === 'mamorukun' || active2 === 'unagasukun', active2);
 }
 
+// ---- 8. タブの並べ替え（appOrder・v0.4.0）----
+if (popup) {
+  // 8a. 保存された並び順がタブと起動時の選択に反映される
+  await evalIn(hubSwSid, `chrome.storage.local.set({ appOrder: ['unagasukun', 'mamorukun', 'osamukun', 'hitorigoto'] })`);
+  const pop4 = await attach(popup.targetId);
+  await evalIn(pop4, `location.reload()`).catch(() => {});
+  await sleep(1500);
+  const pop5 = await attach(popup.targetId);
+  const tabs3 = await evalIn(pop5, `[...document.querySelectorAll('.tab')].map(b => b.dataset.key)`);
+  check('保存した並び順がタブに反映される', JSON.stringify(tabs3) === JSON.stringify(['unagasukun', 'mamorukun']), JSON.stringify(tabs3));
+  check('並び順を変えても起動時はまもるくん', await evalIn(pop5, `document.querySelector('.tab.active')?.dataset.key`) === 'mamorukun');
+
+  // 8b. ドラッグ相当のイベントで並べ替え → DOMと保存の両方が変わる
+  await evalIn(pop5, `(() => {
+    const bar = document.getElementById('tabBar');
+    const drag = document.querySelector('.tab[data-key="unagasukun"]');
+    const dt = new DataTransfer();
+    drag.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    const other = document.querySelector('.tab[data-key="mamorukun"]');
+    const r = other.getBoundingClientRect();
+    bar.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.right + 1, dataTransfer: dt }));
+    drag.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+    return true;
+  })()`);
+  await sleep(500);
+  const tabs4 = await evalIn(pop5, `[...document.querySelectorAll('.tab')].map(b => b.dataset.key)`);
+  check('ドラッグでタブが入れ替わる', JSON.stringify(tabs4) === JSON.stringify(['mamorukun', 'unagasukun']), JSON.stringify(tabs4));
+  const savedOrder = await evalIn(hubSwSid, `chrome.storage.local.get('appOrder').then(d => JSON.stringify(d.appOrder))`);
+  check('並び順が保存される（非表示タブは相対順のまま後ろ）',
+    savedOrder === JSON.stringify(['mamorukun', 'unagasukun', 'osamukun', 'hitorigoto']), savedOrder);
+}
+
 console.log(`\n結果: ${pass} 件成功 / ${fail} 件失敗`);
 chrome.kill();
 process.exit(fail ? 1 : 0);

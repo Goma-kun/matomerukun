@@ -43,7 +43,10 @@ body {
   min-width: 0;
 }
 .tab {
-  flex: 1;
+  /* 残り幅の等分だと、文字数の違いで字間の空きがバラつく（独り言だけ間延びして見える）。
+     幅の上限を決めて全タブ同じ幅で左に詰める */
+  flex: 1 1 0;
+  max-width: 112px;
   min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   border: none; cursor: pointer;
@@ -58,6 +61,7 @@ body {
   border-bottom-color: #e8a13a;
   background: rgba(255,255,255,0.06);
 }
+.tab.dragging { opacity: 0.45; }
 
 /* ── 表示エリア ── */
 .frames {

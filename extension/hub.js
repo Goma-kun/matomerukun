@@ -118,10 +118,25 @@ const store = {
 
 const OVERRIDES_KEY = 'idOverrides';
 const ENABLED_KEY = 'enabledApps';
+const ORDER_KEY = 'appOrder';
 
 let idOverrides = {};
 // タブに表示する拡張のキー一覧。未設定なら全部表示する
 let enabledApps = APPS.map((a) => a.key);
+// タブの並び順（ドラッグで入れ替えられる）。未設定なら APPS の定義順
+let appOrder = APPS.map((a) => a.key);
+
+// 保存された並び順を安全な形に直す：知らないキーは捨て、足りないキーは定義順で後ろに足す
+function sanitizeOrder(saved) {
+  const known = Array.isArray(saved) ? saved.filter((k) => APPS.some((a) => a.key === k)) : [];
+  const missing = APPS.map((a) => a.key).filter((k) => !known.includes(k));
+  return [...known, ...missing];
+}
+
+// APPS を並び順どおりに返す。タブ・設定の表示はこちらを使う
+function orderedApps() {
+  return [...APPS].sort((a, b) => appOrder.indexOf(a.key) - appOrder.indexOf(b.key));
+}
 const frames = new Map(); // key -> iframe（一度作ったら切替では消さない。録音などを止めないため）
 let activeKey = null;
 
@@ -230,7 +245,7 @@ async function retryIfNotice(key) {
 
 function renderTabs() {
   tabBar.textContent = '';
-  for (const app of APPS.filter((a) => enabledApps.includes(a.key))) {
+  for (const app of orderedApps().filter((a) => enabledApps.includes(a.key))) {
     const btn = document.createElement('button');
     btn.className = 'tab';
     btn.dataset.key = app.key;
@@ -242,15 +257,53 @@ function renderTabs() {
       }
       activate(app.key);
     });
+    // ドラッグで並べ替えられるようにする。並べ替え中の見た目は .dragging
+    btn.draggable = true;
+    btn.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', app.key);
+      btn.classList.add('dragging');
+    });
+    btn.addEventListener('dragend', () => {
+      btn.classList.remove('dragging');
+      persistTabOrder();
+    });
     tabBar.appendChild(btn);
   }
+}
+
+// ドラッグ中：ポインタの位置に合わせてタブをその場で入れ替える
+function onTabDragOver(e) {
+  const dragging = tabBar.querySelector('.tab.dragging');
+  if (!dragging) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const rest = [...tabBar.querySelectorAll('.tab:not(.dragging)')];
+  const next = rest.find((t) => {
+    const r = t.getBoundingClientRect();
+    return e.clientX < r.left + r.width / 2;
+  });
+  if (next) {
+    if (next !== dragging.nextElementSibling) tabBar.insertBefore(dragging, next);
+  } else if (tabBar.lastElementChild !== dragging) {
+    tabBar.appendChild(dragging);
+  }
+}
+
+// 並べ替えた結果を保存する。タブに出していない拡張は相対順そのままで後ろに置く
+async function persistTabOrder() {
+  const domOrder = [...tabBar.querySelectorAll('.tab')].map((b) => b.dataset.key);
+  const rest = appOrder.filter((k) => !domOrder.includes(k));
+  appOrder = [...domOrder, ...rest];
+  await store.set({ [ORDER_KEY]: appOrder }).catch(() => {});
+  renderSettings();
 }
 
 // ===== 設定（IDの上書き） =====
 
 function renderSettings() {
   settingsFields.textContent = '';
-  for (const app of APPS) {
+  for (const app of orderedApps()) {
     const field = document.createElement('div');
     field.className = 'field';
 
@@ -282,7 +335,7 @@ function renderSettings() {
 }
 
 async function saveSettings() {
-  const nextEnabled = APPS.filter((app) => document.getElementById(`en-${app.key}`).checked)
+  const nextEnabled = orderedApps().filter((app) => document.getElementById(`en-${app.key}`).checked)
     .map((app) => app.key);
   if (nextEnabled.length === 0) {
     showToast(T('toastPickOne'), true);
@@ -486,8 +539,9 @@ async function init() {
     // プレビュー（chrome.* なし）ではバッジを空のままにする
   }
 
-  const saved = await store.get([OVERRIDES_KEY, ENABLED_KEY]);
+  const saved = await store.get([OVERRIDES_KEY, ENABLED_KEY, ORDER_KEY]);
   idOverrides = saved[OVERRIDES_KEY] || {};
+  appOrder = sanitizeOrder(saved[ORDER_KEY]);
   // 以前の「最後に使ったタブ」の記憶は使わなくなったので掃除しておく
   store.remove('lastAppKey').catch(() => {});
   const savedEnabled = Array.isArray(saved[ENABLED_KEY])
@@ -497,6 +551,9 @@ async function init() {
 
   renderTabs();
   renderSettings();
+
+  tabBar.addEventListener('dragover', onTabDragOver);
+  tabBar.addEventListener('drop', (e) => e.preventDefault());
 
   document.getElementById('btnSettings').addEventListener('click', () => {
     settingsView.hidden = !settingsView.hidden;
@@ -521,7 +578,8 @@ async function init() {
   if (canOpenWindow && await handOverToExistingWindow()) return;
   if (await handOverToExistingSidePanel()) return;
 
-  const first = enabledApps.includes(DEFAULT_APP_KEY) ? DEFAULT_APP_KEY : enabledApps[0];
+  const orderedEnabled = orderedApps().map((a) => a.key).filter((k) => enabledApps.includes(k));
+  const first = enabledApps.includes(DEFAULT_APP_KEY) ? DEFAULT_APP_KEY : orderedEnabled[0];
   await activate(first);
 }
 
