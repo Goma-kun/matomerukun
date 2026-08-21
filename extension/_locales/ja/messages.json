@@ -1,9 +1,10 @@
 {
   "extName": { "message": "まとめるくん" },
-  "extDesc": { "message": "まもるくん・おさむくん・うながすくんをひとつの窓で切り替えて使うハブです。3つの拡張機能をタブで行き来できます。" },
+  "extDesc": { "message": "まもるくん・おさむくん・うながすくん・独り言をひとつの窓で切り替えて使うハブです。4つの拡張機能をタブで行き来できます。" },
   "appMamorukun": { "message": "まもるくん" },
   "appOsamukun": { "message": "おさむくん" },
   "appUnagasukun": { "message": "うながすくん" },
+  "appHitorigoto": { "message": "独り言" },
   "tabAriaLabel": { "message": "拡張機能の切り替え" },
   "btnPopoutTip": { "message": "別ウィンドウで開く" },
   "btnDockTip": { "message": "サイドパネルに戻す" },

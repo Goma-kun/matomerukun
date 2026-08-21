@@ -1,9 +1,10 @@
 {
   "extName": { "message": "Matomerukun" },
-  "extDesc": { "message": "A hub for Mamorukun, Osamukun, and Unagasukun. Switch between the three extensions with tabs in one side panel." },
+  "extDesc": { "message": "A hub for Mamorukun, Osamukun, Unagasukun, and Hitorigoto. Switch between the four extensions with tabs in one side panel." },
   "appMamorukun": { "message": "Mamorukun" },
   "appOsamukun": { "message": "Osamukun" },
   "appUnagasukun": { "message": "Unagasukun" },
+  "appHitorigoto": { "message": "Hitorigoto" },
   "tabAriaLabel": { "message": "Switch extensions" },
   "btnPopoutTip": { "message": "Open in a separate window" },
   "btnDockTip": { "message": "Return to the side panel" },

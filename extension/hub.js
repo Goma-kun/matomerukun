@@ -7,7 +7,7 @@
 // 開発版などIDが違うものを使うときは設定（⚙）で上書きできる。
 // クリップボードへの書き込みは Permissions Policy の既定が self のため、
 // 別オリジン（＝別拡張）の iframe には allow で委譲しないと
-// navigator.clipboard.writeText がすべて拒否される。3拡張ともコピー機能を持つので共通で付ける。
+// navigator.clipboard.writeText がすべて拒否される。各拡張ともコピー機能を持つので共通で付ける。
 const BASE_ALLOW = 'clipboard-write';
 
 const APPS = [
@@ -31,7 +31,19 @@ const APPS = [
     id: 'fenmdmkgdollhelglcbheknnheeclabe',
     page: 'sidepanel.html',
   },
+  {
+    key: 'hitorigoto',
+    labelKey: 'appHitorigoto',
+    id: 'aleiapbacffelpgabepjjmnbfclcodpm',
+    page: 'sidepanel.html',
+    // 英語の独り言を音声認識で聞き取るため、まもるくんと同じくマイクの委譲が要る
+    allow: 'microphone',
+  },
 ];
+
+// 起動時に開くタブ。以前は最後に使ったタブを記憶していたが、
+// 「開くたびに違う画面になる」ほうが迷うため、まもるくん固定にした（2026-08-21 本人指示）
+const DEFAULT_APP_KEY = 'mamorukun';
 
 const hasChromeStorage = typeof chrome !== 'undefined' && !!chrome.storage;
 const hasChromeI18n = typeof chrome !== 'undefined' && !!chrome.i18n;
@@ -106,7 +118,6 @@ const store = {
 
 const OVERRIDES_KEY = 'idOverrides';
 const ENABLED_KEY = 'enabledApps';
-const LAST_APP_KEY = 'lastAppKey';
 
 let idOverrides = {};
 // タブに表示する拡張のキー一覧。未設定なら全部表示する
@@ -198,8 +209,6 @@ async function activate(key) {
       el.hidden = el.dataset.key !== activeKey;
     }
   }
-
-  store.set({ [LAST_APP_KEY]: key }).catch(() => {});
 }
 
 // 案内が出ている拡張は、タブを押し直したら再確認する（あとから拡張を入れた場合のため）
@@ -477,8 +486,10 @@ async function init() {
     // プレビュー（chrome.* なし）ではバッジを空のままにする
   }
 
-  const saved = await store.get([OVERRIDES_KEY, ENABLED_KEY, LAST_APP_KEY]);
+  const saved = await store.get([OVERRIDES_KEY, ENABLED_KEY]);
   idOverrides = saved[OVERRIDES_KEY] || {};
+  // 以前の「最後に使ったタブ」の記憶は使わなくなったので掃除しておく
+  store.remove('lastAppKey').catch(() => {});
   const savedEnabled = Array.isArray(saved[ENABLED_KEY])
     ? saved[ENABLED_KEY].filter((k) => APPS.some((a) => a.key === k))
     : null;
@@ -510,8 +521,7 @@ async function init() {
   if (canOpenWindow && await handOverToExistingWindow()) return;
   if (await handOverToExistingSidePanel()) return;
 
-  const last = saved[LAST_APP_KEY];
-  const first = enabledApps.includes(last) ? last : enabledApps[0];
+  const first = enabledApps.includes(DEFAULT_APP_KEY) ? DEFAULT_APP_KEY : enabledApps[0];
   await activate(first);
 }
 

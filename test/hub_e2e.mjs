@@ -1,5 +1,5 @@
 // まとめるくん結合検証：Chrome for Testing + CDP
-// 4拡張をunpackedで読み込み、ハブからの iframe 埋め込み・タブ切替・
+// 5拡張をunpackedで読み込み、ハブからの iframe 埋め込み・タブ切替・
 // 埋め込み時のボタン制御・切り離しウィンドウを実測する。
 // 使い方:
 //   CHROME_FOR_TESTING=<Chrome for Testingの実行ファイル> node test/hub_e2e.mjs
@@ -18,13 +18,14 @@ if (!CHROME) {
   process.exit(1);
 }
 const SCRATCH = mkdtempSync(path.join(tmpdir(), 'hub-e2e-'));
-// このファイルは matomerukun/test/ にある前提で、拡張4つの親フォルダを辿る
+// このファイルは matomerukun/test/ にある前提で、拡張5つの親フォルダを辿る
 const BASE = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const EXTS = [
   `${BASE}/matomerukun/extension`,
   `${BASE}/Github-mamorukun/mamorukun/extension`,
   `${BASE}/osamukun/extension`,
   `${BASE}/unagasukun/extension`,
+  `${BASE}/Github-hitorigoto/hitorigoto/extension`,
 ];
 const HUB_ID = 'mdheihoolmkhoebieolpoacbfcmccnha';
 const PORT = 9333;
@@ -97,18 +98,21 @@ for (const t of sws) {
   const info = await evalIn(sid, `(() => { const m = chrome.runtime.getManifest(); return { name: m.name, v: m.version, perms: (m.permissions||[]).join(',') }; })()`);
   const id = new URL(t.url).host;
   if (info.name === 'まとめるくん') ids.hub = id;
+  else if (info.name === '独り言' || info.name === 'Hitorigoto') ids.hitorigoto = id;
   else if (info.perms.includes('alarms')) ids.unagasukun = id;
   else if (info.perms.includes('tabs')) ids.mamorukun = id;
   else if (info.perms.includes('sidePanel')) ids.osamukun = id;
 }
 console.log('拡張ID:', JSON.stringify(ids));
-check('4拡張が読み込まれた', Object.keys(ids).length === 4);
+check('5拡張が読み込まれた', Object.keys(ids).length === 5);
 check('ハブIDがkeyで固定されている', ids.hub === HUB_ID, `actual=${ids.hub}`);
 
 // ---- 2. ハブにID上書きを保存（unpacked版のIDはストア版と違うため）----
 const hubSw = sws.find((t) => new URL(t.url).host === ids.hub);
 const hubSwSid = await attach(hubSw.targetId);
-await evalIn(hubSwSid, `chrome.storage.local.set({ idOverrides: { mamorukun: '${ids.mamorukun}', osamukun: '${ids.osamukun}', unagasukun: '${ids.unagasukun}' } })`);
+await evalIn(hubSwSid, `chrome.storage.local.set({ idOverrides: { mamorukun: '${ids.mamorukun}', osamukun: '${ids.osamukun}', unagasukun: '${ids.unagasukun}', hitorigoto: '${ids.hitorigoto}' } })`);
+// 以前の「最後に使ったタブ」の記憶が残っていても、起動時はまもるくんが開くことを後で確かめる
+await evalIn(hubSwSid, `chrome.storage.local.set({ lastAppKey: 'unagasukun' })`);
 
 // ---- 3. ハブ画面を開く ----
 const { targetId: hubTab } = await send('Target.createTarget', { url: `chrome-extension://${ids.hub}/hub.html` });
@@ -116,17 +120,21 @@ await sleep(1500);
 const hub = await attach(hubTab);
 
 const tabs = await evalIn(hub, `[...document.querySelectorAll('.tab')].map(b => b.dataset.key)`);
-check('タブが3つ描画される', JSON.stringify(tabs) === JSON.stringify(['mamorukun', 'osamukun', 'unagasukun']), JSON.stringify(tabs));
+check('タブが4つ描画される', JSON.stringify(tabs) === JSON.stringify(['mamorukun', 'osamukun', 'unagasukun', 'hitorigoto']), JSON.stringify(tabs));
 
-// 3タブを順に開いてiframeを作らせる
-for (const key of ['mamorukun', 'osamukun', 'unagasukun']) {
+// 起動直後はまもるくんが開く（最後に使ったタブの記憶は使わない。v0.4.0の仕様）
+const initialActive = await evalIn(hub, `document.querySelector('.tab.active')?.dataset.key`);
+check('起動時はまもるくんのタブが開く', initialActive === 'mamorukun', String(initialActive));
+
+// 4タブを順に開いてiframeを作らせる
+for (const key of ['mamorukun', 'osamukun', 'unagasukun', 'hitorigoto']) {
   await evalIn(hub, `document.querySelector('.tab[data-key="${key}"]').click()`);
   await sleep(1200);
 }
 const children = await evalIn(hub, `[...document.getElementById('frames').children].map(e => ({ tag: e.tagName, key: e.dataset.key, hidden: e.hidden }))`);
 console.log('framesの中身:', JSON.stringify(children));
-check('3つともiframeになった（案内表示なし）', children.length === 3 && children.every((c) => c.tag === 'IFRAME'));
-check('表示中はうながすくんだけ', children.every((c) => c.hidden === (c.key !== 'unagasukun')));
+check('4つともiframeになった（案内表示なし）', children.length === 4 && children.every((c) => c.tag === 'IFRAME'));
+check('表示中は独り言だけ', children.every((c) => c.hidden === (c.key !== 'hitorigoto')));
 
 // ---- 4. 埋め込まれた各拡張の中身を確認 ----
 await sleep(1000);
@@ -161,6 +169,15 @@ if (mamo) {
   check('まもるくん: マイク権限がpromptかgranted', await evalIn(mamo, `navigator.permissions.query({name:'microphone'}).then(p => p.state !== 'denied')`));
 }
 
+const hito = await frameOf(ids.hitorigoto);
+check('独り言のiframeが生きている', !!hito);
+if (hito) {
+  check('独り言: 開始ボタンが描画される', await evalIn(hito, `!!document.getElementById('toggle-btn')`));
+  check('独り言: SpeechRecognitionが見える', await evalIn(hito, `!!(window.SpeechRecognition || window.webkitSpeechRecognition)`));
+  check('独り言: マイク権限がpromptかgranted', await evalIn(hito, `navigator.permissions.query({name:'microphone'}).then(p => p.state !== 'denied')`));
+  check('独り言: chrome.storageが使える', await evalIn(hito, `chrome.storage.local.set({__probe:1}).then(() => chrome.storage.local.remove('__probe')).then(() => true)`));
+}
+
 // ---- 4.5 コピー機能（clipboard-write の委譲）----
 // Permissions Policy の既定は self。allow で委譲しないと、埋め込まれた側の
 // navigator.clipboard.writeText がすべて NotAllowedError になる（v0.2.1で修正）
@@ -168,7 +185,7 @@ if (mamo) {
 // 対象のタブを表示にしてから試す（そうしないと環境の都合で "Document is not focused" になる）
 await send('Target.activateTarget', { targetId: hubTab });
 await send('Page.bringToFront', {}, hub).catch(() => {});
-for (const [name, key, sid] of [['まもるくん', 'mamorukun', mamo], ['おさむくん', 'osamukun', osa], ['うながすくん', 'unagasukun', una]]) {
+for (const [name, key, sid] of [['まもるくん', 'mamorukun', mamo], ['おさむくん', 'osamukun', osa], ['うながすくん', 'unagasukun', una], ['独り言', 'hitorigoto', hito]]) {
   if (!sid) continue;
   check(`${name}: iframeにclipboard-writeが委譲されている`,
     await evalIn(sid, `document.featurePolicy.allowsFeature('clipboard-write')`));
